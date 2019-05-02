@@ -15,7 +15,7 @@ use syn::{parse_macro_input, Ident};
 
 use chrono::prelude::{DateTime, FixedOffset, NaiveDateTime, TimeZone, Utc};
 
-use log::warn;
+//use log::warn;
 
 struct TestamentOptions {
     name: Ident,
@@ -209,7 +209,6 @@ fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<Error>> {
 #[proc_macro]
 pub fn git_testament(input: TokenStream) -> TokenStream {
     let TestamentOptions { name } = parse_macro_input!(input as TestamentOptions);
-
     let pkgver = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "?.?.?".to_owned());
     let now = Utc::now();
     let now = format!("{}", now.format("%Y-%m-%d"));
@@ -225,7 +224,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     let git_dir = match find_git_dir() {
         Ok(dir) => dir,
         Err(e) => {
-            warn!(
+            eprintln!(
                 "Unable to open a repo at {}: {}",
                 env::var("CARGO_MANIFEST_DIR").unwrap(),
                 e
@@ -246,7 +245,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
         Ok(Some(name)) => quote! {Some(#name)},
         Ok(None) => quote! {None},
         Err(e) => {
-            warn!("Unable to determine branch name: {}", e);
+            eprintln!("Unable to determine branch name: {}", e);
             quote! {None}
         }
     };
@@ -256,7 +255,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
         let (commit, commit_time, commit_offset) = match revparse_single(&git_dir, "HEAD") {
             Ok(commit_data) => commit_data,
             Err(e) => {
-                warn!("No commit at HEAD: {}", e);
+                eprintln!("No commit at HEAD: {}", e);
                 return (quote! {
                 #[allow(clippy::needless_update)]
                 static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
@@ -293,8 +292,8 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 
             (tag_name.to_owned(), commit_count)
         }
-        Err(_) => {
-            warn!("No tag info found!");
+        Err(e) => {
+            eprintln!("No tag info found: {}", e);
             ("".to_owned(), 0)
         }
     };
